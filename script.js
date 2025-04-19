@@ -134,12 +134,15 @@ function gameLoop(time = 0) {
 function drawMatrix(matrix, offset) {
     matrix.forEach((row, y) => {
         row.forEach((value, x) => {
+            const blockX = x + offset.x;
+            const blockY = y + offset.y;
             if (value !== 0) {
                 context.fillStyle = colors[value];
                 // Use offset to position the piece correctly on the grid
-                context.fillRect(x + offset.x,
-                               y + offset.y,
-                               1, 1);
+                context.fillRect(blockX, blockY, 1, 1);
+
+                // Add a subtle border to active pieces to match the grid
+                // Removed: Border drawing is now handled by the grid on the board
             }
         });
     });
@@ -147,20 +150,45 @@ function drawMatrix(matrix, offset) {
 
 function drawBoard() {
     // Draw the landed pieces (non-zero values in the board array)
+    // And the background color for empty cells
     board.forEach((row, y) => {
         row.forEach((value, x) => {
             if (value !== 0) {
                 context.fillStyle = colors[value];
-                context.fillRect(x, y, 1, 1);
             } else {
-                // Optionally draw empty cell background or grid
                 context.fillStyle = '#333'; // Dark background for empty cells
-                context.fillRect(x, y, 1, 1);
-                context.strokeStyle = '#555'; // Grid lines
-                context.strokeRect(x,y,1,1);
             }
+            context.fillRect(x, y, 1, 1); // Draw the cell color
         });
     });
+
+    // --- Draw Grid Lines (Resetting Transform Method) ---
+    context.save(); // Save the current scaled context state
+
+    // Reset transform to draw directly in pixel coordinates
+    context.resetTransform(); // Or context.setTransform(1, 0, 0, 1, 0, 0);
+
+    context.strokeStyle = '#777'; // Use a visible grey for now
+    context.lineWidth = 1; // Draw 1 physical pixel lines
+    context.beginPath();
+
+    // Vertical lines (skip edges x=0 and x=boardWidthInBlocks)
+    for (let x = 1; x < boardWidthInBlocks; ++x) {
+        const pixelX = x * blockSize;
+        context.moveTo(pixelX, 0);
+        context.lineTo(pixelX, canvas.height);
+    }
+
+    // Horizontal lines (skip edges y=0 and y=boardHeightInBlocks)
+    for (let y = 1; y < boardHeightInBlocks; ++y) {
+        const pixelY = y * blockSize;
+        context.moveTo(0, pixelY);
+        context.lineTo(canvas.width, pixelY);
+    }
+
+    context.stroke(); // Render all lines
+
+    context.restore(); // Restore the previous scaled context state
 }
 
 function drawPiece() {
@@ -347,6 +375,93 @@ document.addEventListener('keydown', event => {
         // Add keys for other rotations (e.g., 'z' for counter-clockwise) if desired
     }
 });
+
+// --- Touch Controls ---
+let touchStartX = 0;
+let touchStartY = 0;
+let lastTouchX = 0; // Track last position during move
+let lastTouchY = 0;
+let touchEndX = 0; // Track end position for gesture calculation
+let touchEndY = 0;
+let isDragging = false; // Flag to differentiate tap from drag
+
+const swipeThreshold = 30; // Minimum distance in pixels to be considered a swipe
+const tapThreshold = 10;   // Maximum distance for a tap
+const tapTimeThreshold = 250; // Maximum time in ms for a tap
+let touchStartTime = 0;
+
+canvas.addEventListener('touchstart', event => {
+    // Prevent page scroll - important for gameplay on touch devices
+    event.preventDefault();
+    if (event.touches.length > 1) return; // Ignore multi-touch
+    touchStartX = event.changedTouches[0].screenX;
+    touchStartY = event.changedTouches[0].screenY;
+    lastTouchX = touchStartX;
+    lastTouchY = touchStartY;
+    touchStartTime = new Date().getTime();
+    isDragging = false; // Reset dragging state on new touch
+}, { passive: false }); // Need passive: false to be able to call preventDefault
+
+canvas.addEventListener('touchmove', event => {
+    event.preventDefault();
+    if (event.touches.length > 1) return;
+
+    const currentTouchX = event.changedTouches[0].screenX;
+    const currentTouchY = event.changedTouches[0].screenY;
+
+    const deltaX = currentTouchX - lastTouchX;
+    const deltaY = currentTouchY - lastTouchY;
+
+    const horizontalMoveThreshold = blockSize * 0.5; // Move if dragged half a block width
+    //const verticalMoveThreshold = blockSize * 0.8;   // Be less sensitive to vertical drag for dropping
+
+    // Horizontal Dragging
+    if (Math.abs(deltaX) > horizontalMoveThreshold) {
+        playerMove(deltaX > 0 ? 1 : -1);
+        lastTouchX = currentTouchX; // Update last position after a move
+        // Adjust lastTouchY as well to prevent accidental vertical moves if primarily horizontal
+        lastTouchY = currentTouchY;
+        isDragging = true;
+    }
+
+    // Vertical dragging for drop is intentionally omitted here;
+    // swipe down in touchend provides a more explicit control.
+
+}, { passive: false });
+
+canvas.addEventListener('touchend', event => {
+    event.preventDefault(); // Prevent potential double actions (like zoom)
+    if (event.touches.length > 0) return; // Only handle the final touchend
+    touchEndX = event.changedTouches[0].screenX;
+    touchEndY = event.changedTouches[0].screenY;
+    handleGesture();
+}, { passive: false });
+
+function handleGesture() {
+    const deltaX = touchEndX - touchStartX;
+    const deltaY = touchEndY - touchStartY;
+    const totalElapsedTime = new Date().getTime() - touchStartTime;
+
+    // Check for tap: if not dragging, minimal movement, short duration
+    if (!isDragging &&
+        Math.abs(deltaX) < tapThreshold &&
+        Math.abs(deltaY) < tapThreshold &&
+        totalElapsedTime < tapTimeThreshold) {
+        playerRotate(); // Tap to rotate
+        return;
+    }
+
+    // Check for Swipe Down (only if not primarily a drag/tap)
+    // Check if vertical movement is dominant and exceeds threshold
+    // This is only checked if we weren't dragging horizontally
+    if (!isDragging && Math.abs(deltaY) > Math.abs(deltaX) && deltaY > swipeThreshold) {
+        if (deltaY > 0) { // Swipe down
+            playerDrop();
+        }
+        // Swipe up is ignored
+    }
+    // Horizontal swipes are now handled by touchmove (dragging)
+}
 
 // Reset player piece
 playerReset();

@@ -1,0 +1,58 @@
+body {
+    margin: 0;
+    font-family: sans-serif;
+    background-color: #282c34; /* Dark background */
+    color: white; /* Default text color */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh; /* Ensure body takes full viewport height */
+    overflow: hidden; /* Prevent scrollbars if content overflows slightly */
+}
+
+.App {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+h1 {
+    margin-bottom: 10px;
+}
+
+#score {
+    margin: 10px 0;
+    font-size: 1.2em;
+}
+
+canvas {
+    /* We control border/background via component now */
+    /* Keep canvas block level for centering */
+    display: block;
+    /* Max width to prevent overflow on small screens */
+    max-width: 95vw; /* Use viewport width */
+    /* Maintain aspect ratio based on game dimensions */
+    /* BOARD_WIDTH_IN_BLOCKS / BOARD_HEIGHT_IN_BLOCKS = 10 / 20 = 0.5 */
+    /* Height will be calculated based on width */
+    height: auto;
+}
+
+/* Style for the game container (needs to be added in Game.js) */
+.game-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+    h1 {
+        font-size: 1.5em;
+    }
+
+    #score {
+        font-size: 1em;
+    }
+}

@@ -394,8 +394,8 @@ canvas.addEventListener('touchstart', event => {
     // Prevent page scroll - important for gameplay on touch devices
     event.preventDefault();
     if (event.touches.length > 1) return; // Ignore multi-touch
-    touchStartX = event.changedTouches[0].screenX;
-    touchStartY = event.changedTouches[0].screenY;
+    touchStartX = event.changedTouches[0].clientX;
+    touchStartY = event.changedTouches[0].clientY;
     lastTouchX = touchStartX;
     lastTouchY = touchStartY;
     touchStartTime = new Date().getTime();
@@ -406,11 +406,16 @@ canvas.addEventListener('touchmove', event => {
     event.preventDefault();
     if (event.touches.length > 1) return;
 
-    const currentTouchX = event.changedTouches[0].screenX;
-    const currentTouchY = event.changedTouches[0].screenY;
+    const currentTouchX = event.changedTouches[0].clientX;
+    const currentTouchY = event.changedTouches[0].clientY;
 
     const deltaX = currentTouchX - lastTouchX;
     const deltaY = currentTouchY - lastTouchY;
+
+    // Check if the touch has moved significantly from the start to register as dragging
+    if (!isDragging && Math.sqrt(Math.pow(currentTouchX - touchStartX, 2) + Math.pow(currentTouchY - touchStartY, 2)) > tapThreshold) {
+        isDragging = true;
+    }
 
     const horizontalMoveThreshold = blockSize * 0.5; // Move if dragged half a block width
     //const verticalMoveThreshold = blockSize * 0.8;   // Be less sensitive to vertical drag for dropping
@@ -421,7 +426,7 @@ canvas.addEventListener('touchmove', event => {
         lastTouchX = currentTouchX; // Update last position after a move
         // Adjust lastTouchY as well to prevent accidental vertical moves if primarily horizontal
         lastTouchY = currentTouchY;
-        isDragging = true;
+        // isDragging is now set based on initial movement
     }
 
     // Vertical dragging for drop is intentionally omitted here;
@@ -432,8 +437,8 @@ canvas.addEventListener('touchmove', event => {
 canvas.addEventListener('touchend', event => {
     event.preventDefault(); // Prevent potential double actions (like zoom)
     if (event.touches.length > 0) return; // Only handle the final touchend
-    touchEndX = event.changedTouches[0].screenX;
-    touchEndY = event.changedTouches[0].screenY;
+    touchEndX = event.changedTouches[0].clientX;
+    touchEndY = event.changedTouches[0].clientY;
     handleGesture();
 }, { passive: false });
 
@@ -443,7 +448,7 @@ function handleGesture() {
     const totalElapsedTime = new Date().getTime() - touchStartTime;
 
     // Check for tap: if not dragging, minimal movement, short duration
-    if (!isDragging &&
+    if (!isDragging && // isDragging is true if moved beyond tapThreshold initially
         Math.abs(deltaX) < tapThreshold &&
         Math.abs(deltaY) < tapThreshold &&
         totalElapsedTime < tapTimeThreshold) {
@@ -453,8 +458,7 @@ function handleGesture() {
 
     // Check for Swipe Down (only if not primarily a drag/tap)
     // Check if vertical movement is dominant and exceeds threshold
-    // This is only checked if we weren't dragging horizontally
-    if (!isDragging && Math.abs(deltaY) > Math.abs(deltaX) && deltaY > swipeThreshold) {
+    if (Math.abs(deltaY) > swipeThreshold && Math.abs(deltaY) > Math.abs(deltaX)) { // Removed !isDragging check, focus on dominant downward swipe
         if (deltaY > 0) { // Swipe down
             playerDrop();
         }

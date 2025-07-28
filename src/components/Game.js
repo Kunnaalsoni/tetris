@@ -241,6 +241,13 @@ const Game = () => {
                     <Board board={board} playerPiece={playerPiece} />
                     <p>Level: {level}</p>
                     <p>Lines: {linesCleared}</p>
+                    <div className="mobile-controls">
+                        <button onTouchStart={() => movePlayer(-1)} onClick={() => movePlayer(-1)}>Left</button>
+                        <button onTouchStart={() => movePlayer(1)} onClick={() => movePlayer(1)}>Right</button>
+                        <button onTouchStart={() => rotatePlayer()} onClick={() => rotatePlayer()}>Rotate</button>
+                        <button onTouchStart={() => dropPlayer()} onClick={() => dropPlayer()}>Down</button>
+                        <button className="drag-down" onTouchStart={() => hardDrop()} onClick={() => hardDrop()}>Drag Down</button>
+                    </div>
                 </>
             )}
 

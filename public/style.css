@@ -46,6 +46,28 @@ canvas {
     align-items: center;
 }
 
+/* Styles for mobile control buttons */
+.mobile-controls {
+    display: none; /* Hidden by default, shown in media query */
+    margin-top: 15px;
+}
+
+.mobile-controls button {
+    padding: 10px 20px;
+    font-size: 1em;
+    margin: 5px;
+    cursor: pointer;
+    border: 2px solid #ddd;
+    background-color: #444;
+    color: white;
+    border-radius: 5px;
+    -webkit-tap-highlight-color: transparent; /* Remove tap highlight on mobile */
+}
+
+.mobile-controls button:active {
+    background-color: #555;
+}
+
 /* Responsive adjustments */
 @media (max-width: 600px) {
     h1 {
@@ -54,5 +76,19 @@ canvas {
 
     #score {
         font-size: 1em;
+    }
+}
+
+@media (max-width: 768px) {
+    .mobile-controls {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        width: 80vw; /* Take up more screen width */
+        max-width: 300px;
+    }
+
+    .game-container {
+        padding-bottom: 20px; /* Add space for controls */
     }
 }
